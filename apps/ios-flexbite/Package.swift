@@ -12,11 +12,19 @@ let package = Package(
   products: [
     .executable(name: "FlexBite", targets: ["FlexBite"])
   ],
+  dependencies: [
+    // Stripe iOS SDK.
+    .package(url: "https://github.com/stripe/stripe-ios.git", branch: "master")
+  ],
   targets: [
     .executableTarget(
       name: "FlexBite",
       path: "Sources/FlexBite",
-      exclude: []
+      exclude: [],
+      dependencies: [
+        // Stripe exposes the module `Stripe`.
+        .product(name: "Stripe", package: "stripe-ios")
+      ]
     )
   ]
 )
