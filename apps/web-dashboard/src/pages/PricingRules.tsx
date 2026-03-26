@@ -202,7 +202,7 @@ export default function PricingRules({ ownerUserId }: { ownerUserId: string }) {
         </label>
 
         <label>
-          Stop discount when sold-through >= %
+          Stop discount when sold-through is at least %
           <input
             type="number"
             value={stopGteSoldThroughPercent}
