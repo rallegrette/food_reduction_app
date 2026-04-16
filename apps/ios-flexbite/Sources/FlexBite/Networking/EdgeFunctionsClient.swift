@@ -17,6 +17,12 @@ final class EdgeFunctionsClient {
     return URL(string: trimmed + path)!
   }
 
+  private static let snakeCaseDecoder: JSONDecoder = {
+    let d = JSONDecoder()
+    d.keyDecodingStrategy = .convertFromSnakeCase
+    return d
+  }()
+
   func invoke<T: Decodable>(_ functionName: String, body: [String: Any]) async throws -> T {
     let url = makeURL(functionName)
     var request = URLRequest(url: url)
@@ -32,11 +38,12 @@ final class EdgeFunctionsClient {
     request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
 
     let (data, response) = try await URLSession.shared.data(for: request)
-    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+    guard (200..<300).contains(statusCode) else {
       let bodyText = String(data: data, encoding: .utf8) ?? ""
-      throw FlexBiteError.message("Edge function failed (\(http.statusCode)): \(bodyText)")
+      throw FlexBiteError.message("Edge function failed (\(statusCode)): \(bodyText)")
     }
-    return try JSONDecoder().decode(T.self, from: data)
+    return try Self.snakeCaseDecoder.decode(T.self, from: data)
   }
 }
 
