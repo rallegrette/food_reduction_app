@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getRestaurantForOwner, todayISODate } from "../lib/restaurant";
+import { getRestaurantForOwner } from "../lib/restaurant";
 import { supabase } from "../lib/supabaseClient";
 
 type RestaurantSettingsRow = {
@@ -46,11 +46,12 @@ export default function Onboarding({ ownerUserId }: { ownerUserId: string }) {
         setLatitude(r.latitude != null ? String(r.latitude) : "");
         setLongitude(r.longitude != null ? String(r.longitude) : "");
 
-        const { data: settings } = await supabase
+        const { data: settings, error: settingsErr } = await supabase
           .from("restaurant_settings")
           .select("*")
           .eq("restaurant_id", r.id)
           .maybeSingle();
+        if (settingsErr) throw settingsErr;
 
         if (settings) {
           setRegularEnabled(!!(settings as RestaurantSettingsRow).regular_enabled);
@@ -74,6 +75,16 @@ export default function Onboarding({ ownerUserId }: { ownerUserId: string }) {
     try {
       const lat = latitude === "" ? null : Number(latitude);
       const lon = longitude === "" ? null : Number(longitude);
+      if (lat !== null && !Number.isFinite(lat)) {
+        setError("Latitude must be a valid number.");
+        setSaving(false);
+        return;
+      }
+      if (lon !== null && !Number.isFinite(lon)) {
+        setError("Longitude must be a valid number.");
+        setSaving(false);
+        return;
+      }
 
       if (!restaurantId) {
         const { data: created, error: createErr } = await supabase

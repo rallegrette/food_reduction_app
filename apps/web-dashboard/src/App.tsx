@@ -19,7 +19,9 @@ export default function App() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user ? { id: data.user.id, email: data.user.email ?? undefined } : null));
+    supabase.auth.getUser()
+      .then(({ data }) => setUser(data.user ? { id: data.user.id, email: data.user.email ?? undefined } : null))
+      .catch(() => setUser(null));
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ? { id: session.user.id, email: session.user.email ?? undefined } : null);
     });
@@ -39,7 +41,7 @@ export default function App() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (e) {
-      setAuthError(String(e));
+      setAuthError(e instanceof Error ? e.message : String(e));
     } finally {
       setAuthLoading(false);
     }
@@ -52,14 +54,15 @@ export default function App() {
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
     } catch (e) {
-      setAuthError(String(e));
+      setAuthError(e instanceof Error ? e.message : String(e));
     } finally {
       setAuthLoading(false);
     }
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) setAuthError(error.message);
     setPage("onboarding");
   }
 

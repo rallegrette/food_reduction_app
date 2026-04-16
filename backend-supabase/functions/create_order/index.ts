@@ -62,8 +62,6 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Missing items for regular mode" }), { status: 400 });
       }
 
-      // Fetch menu item data + inventory snapshot for today.
-      const today = new Date();
       const inventoryDate = now.toISOString().slice(0, 10); // YYYY-MM-DD
 
       const menuItemIds = items.map((i) => i.menu_item_id);
@@ -135,6 +133,10 @@ serve(async (req) => {
           base_price: basePrice,
           effective_unit_price: effectiveUnitPrice,
         });
+      }
+
+      if (orderItems.length === 0) {
+        return new Response(JSON.stringify({ error: "No valid items in order" }), { status: 400 });
       }
     }
 

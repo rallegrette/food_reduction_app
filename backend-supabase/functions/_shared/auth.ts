@@ -11,10 +11,10 @@ export async function getAuthenticatedUserId(req: Request): Promise<string | nul
   const token = authHeader.slice(7);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const anonKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !anonKey) return null;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) return null;
 
-  const supabase = createClient(supabaseUrl, anonKey, {
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });
 
