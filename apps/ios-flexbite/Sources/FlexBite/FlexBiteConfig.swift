@@ -9,6 +9,7 @@ enum FlexBiteConfig {
 
   static var supabaseUrl: String { infoString("FLEXBITE_SUPABASE_URL") }
   static var supabaseAnonKey: String { infoString("FLEXBITE_SUPABASE_ANON_KEY") }
+  static var stripePublishableKey: String { infoString("FLEXBITE_STRIPE_PUBLISHABLE_KEY") }
 
   static var supabaseAccessTokenKey: String { "supabase_access_token" }
 }

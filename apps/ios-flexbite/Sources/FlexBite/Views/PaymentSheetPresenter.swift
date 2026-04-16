@@ -11,6 +11,10 @@ struct PaymentSheetPresenter: UIViewControllerRepresentable {
   let displayName: String
   let onResult: (PaymentSheetResult) -> Void
 
+  func makeCoordinator() -> Coordinator {
+    Coordinator()
+  }
+
   func makeUIViewController(context: Context) -> UIViewControllerType {
     let vc = UIViewController()
     vc.view.backgroundColor = .clear
@@ -18,8 +22,11 @@ struct PaymentSheetPresenter: UIViewControllerRepresentable {
   }
 
   func updateUIViewController(_ uiViewController: UIViewControllerType, context: Context) {
+    guard !context.coordinator.hasPresented else { return }
+    context.coordinator.hasPresented = true
+
 #if canImport(Stripe)
-    let configuration = PaymentSheet.Configuration()
+    var configuration = PaymentSheet.Configuration()
     configuration.merchantDisplayName = displayName
 
     let paymentSheet = PaymentSheet(paymentIntentClientSecret: paymentIntentClientSecret, configuration: configuration)
@@ -27,9 +34,11 @@ struct PaymentSheetPresenter: UIViewControllerRepresentable {
       onResult(result)
     }
 #else
-    // If Stripe SDK isn't available, surface a clear error.
     onResult(.failed(error: FlexBiteError.message("Stripe SDK not linked.")))
 #endif
   }
-}
 
+  class Coordinator {
+    var hasPresented = false
+  }
+}
