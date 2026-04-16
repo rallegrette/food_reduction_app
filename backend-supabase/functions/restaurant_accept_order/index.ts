@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { getSupabaseAdminClient } from "../_shared/supabaseAdminClient.ts";
+import { getAuthenticatedUserId } from "../_shared/auth.ts";
 
 serve(async (req) => {
   try {
@@ -7,13 +8,16 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Use POST" }), { status: 405 });
     }
 
+    const staffUserId = await getAuthenticatedUserId(req);
+    if (!staffUserId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
+
     const body = await req.json();
     const supabase = getSupabaseAdminClient();
 
     const orderId = body?.order_id;
-    const restaurantId = body?.restaurant_id;
     if (!orderId) return new Response(JSON.stringify({ error: "Missing order_id" }), { status: 400 });
-    if (!restaurantId) return new Response(JSON.stringify({ error: "Missing restaurant_id" }), { status: 400 });
 
     const { data: order, error: orderErr } = await supabase
       .from("orders")
@@ -22,9 +26,19 @@ serve(async (req) => {
       .single();
     if (orderErr) throw orderErr;
     if (!order) return new Response(JSON.stringify({ error: "Order not found" }), { status: 404 });
-    if (String(order.restaurant_id) !== String(restaurantId)) {
-      return new Response(JSON.stringify({ error: "Restaurant mismatch" }), { status: 403 });
+
+    // Verify the caller owns the restaurant this order belongs to.
+    const { data: restaurant, error: restErr } = await supabase
+      .from("restaurants")
+      .select("id")
+      .eq("id", order.restaurant_id)
+      .eq("owner_user_id", staffUserId)
+      .maybeSingle();
+    if (restErr) throw restErr;
+    if (!restaurant) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
+
     if (order.status !== "reserved") {
       return new Response(JSON.stringify({ error: `Order must be reserved to accept (current: ${order.status})` }), { status: 409 });
     }

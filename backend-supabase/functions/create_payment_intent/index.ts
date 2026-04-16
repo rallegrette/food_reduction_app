@@ -1,11 +1,17 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { getSupabaseAdminClient } from "../_shared/supabaseAdminClient.ts";
+import { getAuthenticatedUserId } from "../_shared/auth.ts";
 import { getStripeClient } from "../_shared/stripeClient.ts";
 
 serve(async (req) => {
   try {
     if (req.method !== "POST") {
       return new Response(JSON.stringify({ error: "Use POST" }), { status: 405 });
+    }
+
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
     }
 
     const body = await req.json();
@@ -20,13 +26,16 @@ serve(async (req) => {
     // Read order snapshot totals + restaurant info.
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("id, restaurant_id, total_amount, currency")
+      .select("id, user_id, restaurant_id, total_amount, currency")
       .eq("id", orderId)
       .single();
 
     if (orderError) throw orderError;
     if (!order) {
       return new Response(JSON.stringify({ error: "Order not found" }), { status: 404 });
+    }
+    if (String(order.user_id) !== userId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
     const { data: restaurant, error: restaurantError } = await supabase

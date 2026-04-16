@@ -1,16 +1,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { getSupabaseAdminClient } from "../_shared/supabaseAdminClient.ts";
+import { getAuthenticatedUserId } from "../_shared/auth.ts";
 import { computeMysteryBasket, computeRegularUnitOffer } from "../_shared/pricingEngine.js";
-
-type PricingRuleRow = {
-  target_scope: "item" | "category" | "all";
-  target_menu_item_id: string | null;
-  target_category: string | null;
-  applies_after_time: string;
-  discount_percent: number | string;
-  stop_discount_if_sold_through_gte_percent: number | string | null;
-  enabled: boolean;
-};
 
 type RegularOrderItemInput = { menu_item_id: string; quantity: number };
 
@@ -20,15 +11,18 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Use POST" }), { status: 405 });
     }
 
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+    }
+
     const body = await req.json();
     const supabase = getSupabaseAdminClient();
 
     const restaurantId = body?.restaurant_id;
-    const userId = body?.user_id;
     const mode = body?.mode; // "regular" | "mystery"
 
     if (!restaurantId) return new Response(JSON.stringify({ error: "Missing restaurant_id" }), { status: 400 });
-    if (!userId) return new Response(JSON.stringify({ error: "Missing user_id" }), { status: 400 });
     if (mode !== "regular" && mode !== "mystery") {
       return new Response(JSON.stringify({ error: "mode must be 'regular' or 'mystery'" }), { status: 400 });
     }
