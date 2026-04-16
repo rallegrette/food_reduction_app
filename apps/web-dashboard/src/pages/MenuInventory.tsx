@@ -137,7 +137,10 @@ export default function MenuInventory({ ownerUserId }: { ownerUserId: string }) 
       })
       .select("id")
       .single();
-    if (insErr) setError(String(insErr));
+    if (insErr) {
+      setError(insErr.message ?? String(insErr));
+      return;
+    }
     setNewName("");
     setNewBasePrice("0");
     await refresh();
@@ -160,7 +163,10 @@ export default function MenuInventory({ ownerUserId }: { ownerUserId: string }) 
       },
       { onConflict: "restaurant_id,menu_item_id,inventory_date" },
     );
-    if (upErr) setError(String(upErr));
+    if (upErr) {
+      setError(upErr.message ?? String(upErr));
+      return;
+    }
     await refresh();
   }
 
