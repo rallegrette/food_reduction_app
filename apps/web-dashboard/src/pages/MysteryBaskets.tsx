@@ -97,37 +97,38 @@ export default function MysteryBaskets({ ownerUserId }: { ownerUserId: string })
       return;
     }
 
-    // Create basket
-    const { data: created, error: createErr } = await supabase
-      .from("mystery_baskets")
-      .insert({
-        restaurant_id: restaurantId,
-        name: name.trim() ? name.trim() : null,
-        bundle_size: bundle,
-        mystery_discount_percent: disc,
-      })
-      .select("*")
-      .single();
-    if (createErr) throw createErr;
+    try {
+      const { data: created, error: createErr } = await supabase
+        .from("mystery_baskets")
+        .insert({
+          restaurant_id: restaurantId,
+          name: name.trim() ? name.trim() : null,
+          bundle_size: bundle,
+          mystery_discount_percent: disc,
+        })
+        .select("*")
+        .single();
+      if (createErr) throw createErr;
 
-    const basketId = created.id;
+      const basketId = created.id;
 
-    // Insert eligible items
-    const rows = eligibleIds.map((menu_item_id) => ({
-      mystery_basket_id: basketId,
-      menu_item_id,
-    }));
+      const rows = eligibleIds.map((menu_item_id) => ({
+        mystery_basket_id: basketId,
+        menu_item_id,
+      }));
 
-    const { error: relErr } = await supabase.from("mystery_basket_items").insert(rows);
-    if (relErr) throw relErr;
+      const { error: relErr } = await supabase.from("mystery_basket_items").insert(rows);
+      if (relErr) throw relErr;
 
-    // Reset
-    setName("");
-    setBundleSize("3");
-    setMysteryDiscountPercent("50");
-    setSelectedEligible({});
+      setName("");
+      setBundleSize("3");
+      setMysteryDiscountPercent("50");
+      setSelectedEligible({});
 
-    await refresh();
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   }
 
   const selectedCount = useMemo(
