@@ -34,9 +34,10 @@ final class SupabaseAuthClient {
     request.httpBody = try JSONSerialization.data(withJSONObject: ["email": email, "password": password], options: [])
 
     let (data, response) = try await URLSession.shared.data(for: request)
-    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+    guard (200..<300).contains(statusCode) else {
       let bodyText = String(data: data, encoding: .utf8) ?? ""
-      throw FlexBiteError.message("Sign in failed (\(http.statusCode)): \(bodyText)")
+      throw FlexBiteError.message("Sign in failed (\(statusCode)): \(bodyText)")
     }
 
     let decoded = try JSONDecoder().decode(TokenResponse.self, from: data)

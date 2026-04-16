@@ -32,6 +32,12 @@ final class SupabaseRESTClient {
     return h
   }
 
+  private static let snakeCaseDecoder: JSONDecoder = {
+    let d = JSONDecoder()
+    d.keyDecodingStrategy = .convertFromSnakeCase
+    return d
+  }()
+
   func get<T: Decodable>(_ url: URL, queryItems: [URLQueryItem] = [], headers extraHeaders: [String: String] = [:]) async throws -> T {
     var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
     if !queryItems.isEmpty {
@@ -47,7 +53,7 @@ final class SupabaseRESTClient {
     guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
       throw FlexBiteError.message("GET failed (\((response as? HTTPURLResponse)?.statusCode ?? -1))")
     }
-    return try JSONDecoder().decode(T.self, from: data)
+    return try Self.snakeCaseDecoder.decode(T.self, from: data)
   }
 
   func post<T: Decodable>(_ url: URL, jsonBody: [String: Any], headers extraHeaders: [String: String] = [:]) async throws -> T {
@@ -57,11 +63,12 @@ final class SupabaseRESTClient {
     request.httpBody = try JSONSerialization.data(withJSONObject: jsonBody, options: [])
 
     let (data, response) = try await URLSession.shared.data(for: request)
-    guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+    let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+    guard (200..<300).contains(statusCode) else {
       let body = String(data: data, encoding: .utf8) ?? ""
-      throw FlexBiteError.message("POST failed (\(http.statusCode)): \(body)")
+      throw FlexBiteError.message("POST failed (\(statusCode)): \(body)")
     }
-    return try JSONDecoder().decode(T.self, from: data)
+    return try Self.snakeCaseDecoder.decode(T.self, from: data)
   }
 }
 
