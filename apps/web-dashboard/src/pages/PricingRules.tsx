@@ -93,14 +93,12 @@ export default function PricingRules({ ownerUserId }: { ownerUserId: string }) {
 
   useEffect(() => {
     if (targetScope === "item") {
-      const first = menuItems[0]?.id ?? "";
-      setTargetMenuItemId(first);
+      setTargetMenuItemId(menuItems[0]?.id ?? "");
     }
     if (targetScope === "category") {
-      const cat = menuItems[0]?.category ?? "";
-      setTargetCategory(cat);
+      setTargetCategory(menuItems[0]?.category ?? "");
     }
-  }, [targetScope]); // intentionally not depending on menuItems
+  }, [targetScope, menuItems]);
 
   async function addRule() {
     if (!restaurantId) return;
@@ -127,8 +125,20 @@ export default function PricingRules({ ownerUserId }: { ownerUserId: string }) {
       stop_discount_if_sold_through_gte_percent: stopVal,
     };
 
-    if (targetScope === "item") payload.target_menu_item_id = targetMenuItemId;
-    if (targetScope === "category") payload.target_category = targetCategory;
+    if (targetScope === "item") {
+      if (!targetMenuItemId) {
+        setError("Select a menu item.");
+        return;
+      }
+      payload.target_menu_item_id = targetMenuItemId;
+    }
+    if (targetScope === "category") {
+      if (!targetCategory.trim()) {
+        setError("Enter a category.");
+        return;
+      }
+      payload.target_category = targetCategory;
+    }
 
     const { error: insErr } = await supabase.from("pricing_rules").insert(payload);
     if (insErr) {
@@ -218,7 +228,7 @@ export default function PricingRules({ ownerUserId }: { ownerUserId: string }) {
           Enabled
         </label>
 
-        <button onClick={addRule} disabled={menuItems.length === 0 && targetScope === "item"}>
+        <button onClick={addRule} disabled={(targetScope === "item" && !targetMenuItemId) || (targetScope === "category" && !targetCategory.trim())}>
           Add Rule
         </button>
       </div>

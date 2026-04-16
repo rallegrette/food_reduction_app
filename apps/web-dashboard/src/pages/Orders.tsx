@@ -17,6 +17,7 @@ export default function Orders({ ownerUserId }: { ownerUserId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
 
   async function refresh() {
     if (!restaurantId) return;
@@ -72,23 +73,33 @@ export default function Orders({ ownerUserId }: { ownerUserId: string }) {
   }, [restaurantId]);
 
   async function accept(orderId: string) {
-    if (!restaurantId) return;
+    if (!restaurantId || actionInProgress) return;
     setError(null);
-    const { error: fnErr } = await supabase.functions.invoke("restaurant_accept_order", {
-      body: { order_id: orderId, restaurant_id: restaurantId },
-    });
-    if (fnErr) setError(String(fnErr));
-    await refresh();
+    setActionInProgress(orderId);
+    try {
+      const { error: fnErr } = await supabase.functions.invoke("restaurant_accept_order", {
+        body: { order_id: orderId, restaurant_id: restaurantId },
+      });
+      if (fnErr) setError(fnErr.message ?? String(fnErr));
+      await refresh();
+    } finally {
+      setActionInProgress(null);
+    }
   }
 
   async function reject(orderId: string) {
-    if (!restaurantId) return;
+    if (!restaurantId || actionInProgress) return;
     setError(null);
-    const { error: fnErr } = await supabase.functions.invoke("restaurant_reject_order", {
-      body: { order_id: orderId, restaurant_id: restaurantId },
-    });
-    if (fnErr) setError(String(fnErr));
-    await refresh();
+    setActionInProgress(orderId);
+    try {
+      const { error: fnErr } = await supabase.functions.invoke("restaurant_reject_order", {
+        body: { order_id: orderId, restaurant_id: restaurantId },
+      });
+      if (fnErr) setError(fnErr.message ?? String(fnErr));
+      await refresh();
+    } finally {
+      setActionInProgress(null);
+    }
   }
 
   if (loading) return <div>Loading...</div>;
@@ -128,8 +139,8 @@ export default function Orders({ ownerUserId }: { ownerUserId: string }) {
                   {o.pickup_window_end ? new Date(o.pickup_window_end).toLocaleTimeString() : "—"}
                 </td>
                 <td style={{ padding: 8, display: "flex", gap: 8 }}>
-                  <button onClick={() => accept(o.id)}>Accept</button>
-                  <button onClick={() => reject(o.id)}>Reject</button>
+                  <button onClick={() => accept(o.id)} disabled={actionInProgress === o.id}>Accept</button>
+                  <button onClick={() => reject(o.id)} disabled={actionInProgress === o.id}>Reject</button>
                 </td>
               </tr>
             ))}
