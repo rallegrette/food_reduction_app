@@ -39,12 +39,13 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Payment intent not linked to order" }), { status: 400 });
       }
 
-      // Update reconciliation + order status.
-      await supabase.from("payment_intents").update({ status: "succeeded" }).eq("stripe_payment_intent_id", stripePaymentIntentId);
-      await supabase
+      const { error: piUpdateErr } = await supabase.from("payment_intents").update({ status: "succeeded" }).eq("stripe_payment_intent_id", stripePaymentIntentId);
+      if (piUpdateErr) throw piUpdateErr;
+      const { error: orderUpdateErr } = await supabase
         .from("orders")
         .update({ payment_status: "succeeded", status: "paid" })
         .eq("id", piRow.order_id);
+      if (orderUpdateErr) throw orderUpdateErr;
 
       // After payment succeeds, reserve inventory for the order.
       const { error: reserveErr } = await supabase.rpc("reserve_inventory_for_order", { p_order_id: piRow.order_id });
@@ -69,15 +70,17 @@ serve(async (req) => {
       if (piErr) throw piErr;
 
       if (piRow?.order_id) {
-        await supabase
+        const { error: failOrderErr } = await supabase
           .from("orders")
           .update({ payment_status: "failed", status: "cancelled" })
           .eq("id", piRow.order_id);
+        if (failOrderErr) throw failOrderErr;
       }
-      await supabase
+      const { error: failPiErr } = await supabase
         .from("payment_intents")
         .update({ status: "failed" })
         .eq("stripe_payment_intent_id", stripePaymentIntentId);
+      if (failPiErr) throw failPiErr;
 
       return new Response(JSON.stringify({ received: true }), { status: 200 });
     }

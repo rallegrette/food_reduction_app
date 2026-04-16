@@ -44,10 +44,10 @@ final class DealsViewModel: ObservableObject {
       }
       let settingsRows: [SettingsRow] = try await restClient.get(settingsURL)
 
-      let settingsMap = Dictionary(uniqueKeysWithValues: settingsRows.map { ($0.restaurant_id, $0) })
+      let settingsMap = Dictionary(settingsRows.map { ($0.restaurant_id, $0) }, uniquingKeysWith: { _, latest in latest })
 
       restaurants = restaurantRows.map { r in
-        let s = settingsMap[r.id] ?? nil
+        let s = settingsMap[r.id]
         return RestaurantWithSettings(
           id: r.id,
           name: r.name,
@@ -58,8 +58,8 @@ final class DealsViewModel: ObservableObject {
         )
       }
       .sorted { $0.name < $1.name }
-    } catch {
-      error = error.localizedDescription
+    } catch let caught {
+      self.error = caught.localizedDescription
     }
   }
 }

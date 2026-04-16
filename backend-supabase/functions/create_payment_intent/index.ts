@@ -54,6 +54,10 @@ serve(async (req) => {
     const totalAmount = Number(order.total_amount);
     const currency = String(order.currency ?? "usd");
 
+    if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+      return new Response(JSON.stringify({ error: "Invalid order total" }), { status: 400 });
+    }
+
     // Stripe expects integer cents.
     const amountCents = Math.round(totalAmount * 100);
     const applicationFeeCents = Math.round((amountCents * feePercent) / 100);
@@ -79,8 +83,7 @@ serve(async (req) => {
       { idempotencyKey }
     );
 
-    // Store reconciliation record if not already present.
-    await supabase.from("payment_intents").upsert(
+    const { error: upsertErr } = await supabase.from("payment_intents").upsert(
       {
         order_id: orderId,
         stripe_payment_intent_id: paymentIntent.id,
@@ -90,12 +93,13 @@ serve(async (req) => {
       },
       { onConflict: "order_id" }
     );
+    if (upsertErr) throw upsertErr;
 
-    // Mark order as pending_payment. (The webhook will set paid/succeeded.)
-    await supabase
+    const { error: orderUpdateErr } = await supabase
       .from("orders")
       .update({ payment_status: "pending" })
       .eq("id", orderId);
+    if (orderUpdateErr) throw orderUpdateErr;
 
     return new Response(JSON.stringify({ client_secret: paymentIntent.client_secret, payment_intent_id: paymentIntent.id }), {
       headers: { "content-type": "application/json" },

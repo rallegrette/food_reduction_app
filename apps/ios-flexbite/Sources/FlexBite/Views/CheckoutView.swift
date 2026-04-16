@@ -115,9 +115,7 @@ struct CheckoutView: View {
 
         let piResp = try await edgeClient.invoke("create_payment_intent", body: ["order_id": createOrderResp.order_id]) as CreatePaymentIntentResponse
         clientSecret = piResp.client_secret
-      }
-
-      if let mystery = mysteryPayload {
+      } else if let mystery = mysteryPayload {
         let body: [String: Any] = [
           "restaurant_id": mystery.restaurantId,
           "user_id": userId,
