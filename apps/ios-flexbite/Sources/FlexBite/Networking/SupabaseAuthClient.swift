@@ -17,14 +17,16 @@ final class SupabaseAuthClient {
     let user: SupabaseUser
   }
 
-  private func makeURL() -> URL {
+  private func makeURL() throws -> URL {
     let trimmed = supabaseUrl.hasSuffix("/") ? String(supabaseUrl.dropLast()) : supabaseUrl
-    // Supabase Auth token endpoint
-    return URL(string: trimmed + "/auth/v1/token?grant_type=password")!
+    guard let url = URL(string: trimmed + "/auth/v1/token?grant_type=password") else {
+      throw FlexBiteError.message("Invalid Supabase URL: \(trimmed)")
+    }
+    return url
   }
 
   func signIn(email: String, password: String) async throws -> (accessToken: String, userId: String) {
-    var request = URLRequest(url: makeURL())
+    var request = URLRequest(url: try makeURL())
     request.httpMethod = "POST"
     request.allHTTPHeaderFields = [
       "apikey": anonKey,

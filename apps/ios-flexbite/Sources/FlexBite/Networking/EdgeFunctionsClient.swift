@@ -11,10 +11,13 @@ final class EdgeFunctionsClient {
     self.accessToken = accessToken
   }
 
-  private func makeURL(_ functionName: String) -> URL {
+  private func makeURL(_ functionName: String) throws -> URL {
     let trimmed = supabaseUrl.hasSuffix("/") ? String(supabaseUrl.dropLast()) : supabaseUrl
     let path = "/functions/v1/\(functionName)"
-    return URL(string: trimmed + path)!
+    guard let url = URL(string: trimmed + path) else {
+      throw FlexBiteError.message("Invalid Supabase URL: \(trimmed + path)")
+    }
+    return url
   }
 
   private static let snakeCaseDecoder: JSONDecoder = {
@@ -24,7 +27,7 @@ final class EdgeFunctionsClient {
   }()
 
   func invoke<T: Decodable>(_ functionName: String, body: [String: Any]) async throws -> T {
-    let url = makeURL(functionName)
+    let url = try makeURL(functionName)
     var request = URLRequest(url: url)
     request.httpMethod = "POST"
     var headers: [String: String] = [
