@@ -7,8 +7,10 @@ FlexBite is a surplus food marketplace that connects consumers with restaurants 
 - **Regular deals** — restaurants define time-based discount rules (e.g. "20% off after 8 PM") scoped to individual items, categories, or the full menu.
 - **Mystery baskets** — bundled surprise meals at a flat discount, assembled from eligible inventory.
 - **Inventory tracking** — per-item daily inventory with automatic reservation on checkout and release on rejection.
-- **Order lifecycle** — `pending_payment` → `paid` → `accepted` / `rejected`, driven by Stripe webhooks and restaurant actions.
+- **Order lifecycle** — `pending_payment` → `paid` → `reserved` → `accepted` / `rejected`, driven by Stripe webhooks and restaurant actions.
 - **Stripe Connect payments** — consumers pay through Stripe; restaurants receive payouts minus a configurable platform fee.
+- **JWT authentication** — all Edge Functions validate the caller's identity via Supabase Auth JWTs; user and restaurant ownership are derived from the token, never trusted from the request body.
+- **Row Level Security** — Postgres RLS policies on every table enforce tenant isolation at the database level.
 
 ## Tech Stack
 
@@ -37,7 +39,7 @@ FlexBite is a surplus food marketplace that connects consumers with restaurants 
 └── backend-supabase/
     ├── migrations/                     # Postgres schema (SQL)
     ├── functions/                      # Supabase Edge Functions (Deno)
-    │   ├── _shared/                    # Shared helpers (Stripe client, pricing engine)
+    │   ├── _shared/                    # Shared helpers (auth, Stripe client, pricing engine)
     │   ├── create_order/
     │   ├── create_payment_intent/
     │   ├── stripe_webhook/
@@ -106,6 +108,7 @@ Open `apps/ios-flexbite/` in Xcode. Set the following keys in your `Info.plist`:
 
 - `FLEXBITE_SUPABASE_URL`
 - `FLEXBITE_SUPABASE_ANON_KEY`
+- `FLEXBITE_STRIPE_PUBLISHABLE_KEY`
 
 Build and run on a simulator or device targeting iOS 16+.
 
