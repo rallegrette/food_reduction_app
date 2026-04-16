@@ -50,9 +50,8 @@ serve(async (req) => {
       // After payment succeeds, reserve inventory for the order.
       const { error: reserveErr } = await supabase.rpc("reserve_inventory_for_order", { p_order_id: piRow.order_id });
       if (reserveErr) {
-        // Payment succeeded but we could not reserve stock; reject pickup.
-        await supabase.from("orders").update({ status: "rejected" }).eq("id", piRow.order_id);
-        // Keep payment_status as succeeded (money is captured); order is rejected for fulfillment.
+        const { error: rejectErr } = await supabase.from("orders").update({ status: "rejected" }).eq("id", piRow.order_id);
+        if (rejectErr) throw rejectErr;
       }
 
       return new Response(JSON.stringify({ received: true }), { status: 200 });

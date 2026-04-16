@@ -29,5 +29,13 @@ final class AuthStore: ObservableObject {
       authError = error.localizedDescription
     }
   }
+
+  func signOut() {
+    accessToken = nil
+    userId = nil
+    authError = nil
+    UserDefaults.standard.removeObject(forKey: FlexBiteConfig.supabaseAccessTokenKey)
+    UserDefaults.standard.removeObject(forKey: "supabase_user_id")
+  }
 }
 
