@@ -2,14 +2,13 @@ import SwiftUI
 
 struct ContentView: View {
   @StateObject private var auth = AuthStore()
-  @StateObject private var dealsVM = DealsViewModel(accessTokenProvider: { nil })
 
   var body: some View {
     NavigationStack {
       if auth.isSignedIn {
         DealsListView(
           auth: auth,
-          dealsVM: dealsVM,
+          dealsVM: DealsViewModel(accessTokenProvider: { [weak auth] in auth?.accessToken }),
           onSelectRegularRestaurant: { _ in },
           onSelectMysteryRestaurant: { _ in }
         )
