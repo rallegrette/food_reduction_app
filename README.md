@@ -111,7 +111,3 @@ Open `apps/ios-flexbite/` in Xcode. Set the following keys in your `Info.plist`:
 - `FLEXBITE_STRIPE_PUBLISHABLE_KEY`
 
 Build and run on a simulator or device targeting iOS 16+.
-
-## License
-
-ISC
